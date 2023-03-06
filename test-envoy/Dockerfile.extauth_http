@@ -1,0 +1,11 @@
+FROM golang:latest as builder
+
+COPY . /extauth_http
+WORKDIR /extauth_http
+ENV GO111MODULE=on
+RUN CGO_ENABLED=0 GOOOS=linux go build -o httpauthexec ./extauth_http/main.go
+
+FROM alpine:latest
+WORKDIR /root/
+COPY --from=builder /extauth_http .
+CMD ["./httpauthexec"]

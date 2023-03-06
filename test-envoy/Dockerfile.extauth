@@ -1,0 +1,11 @@
+FROM golang:latest as builder
+
+COPY . /extauth
+WORKDIR /extauth
+ENV GO111MODULE=on
+RUN CGO_ENABLED=0 GOOOS=linux go build -o extauthexec ./extauth/main.go
+
+FROM alpine:latest
+WORKDIR /root/
+COPY --from=builder /extauth .
+CMD ["./extauthexec"]

@@ -1,0 +1,85 @@
+admin:
+  access_log_path: /tmp/admin_access.log
+  address:
+    socket_address: { address: 0.0.0.0, port_value: 8888 }
+
+static_resources:
+  listeners:
+    - name: listener_0
+      address:
+        socket_address: { address: 0.0.0.0, port_value: 1337 }
+      filter_chains:
+      - filters:
+        - name: envoy.http_connection_manager
+          typed_config:
+            "@type": type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager
+            stat_prefix: ingress_http
+            codec_type: AUTO
+            route_config:
+              name: local_route
+              virtual_hosts:
+              - name: local_service
+                domains: ["*"]
+                per_filter_config:
+                  envoy.ext_authz:
+                    check_settings:
+                      context_extensions:
+                        virtual_host: local_service
+                routes:
+                - match:
+                    prefix: "/" 
+                    grpc: {}
+                  route:  
+                    cluster: backend
+
+            http_filters:
+            - name: envoy.ext_authz
+              config:
+                grpc_service:
+                  envoy_grpc:
+                    cluster_name: extauth
+            - name: envoy.filters.http.ext_authz
+              typed_config:
+                "@type": type.googleapis.com/envoy.config.filter.http.ext_authz.v3.ExtAuthz
+                http_service:
+                  authorization_request: 
+                    allowed_headers: 
+                      patterns: 
+                      - prefix: "my-credential-header"
+                  server_uri:
+                    uri: 127.0.0.1:10003
+                    cluster: extauth_http
+                    timeout: 0.25s
+                failure_mode_allow: false
+                include_peer_certificate: true
+            - name: envoy.router
+
+  clusters:
+  - name: backend
+    connect_timeout: 5s
+    type: strict_dns
+    lb_policy: round_robin
+    http2_protocol_options: {} # enable H2 protocol
+    hosts:
+    - socket_address:
+        address: host.docker.internal
+        port_value: 8123
+
+  - name: extauth
+    connect_timeout: 5s
+    type: STRICT_DNS
+    http2_protocol_options: {}
+    lb_policy: round_robin
+    hosts:
+    - socket_address:
+        address: extauth
+        port_value: 4040
+
+  - name: extauth_http
+    connect_timeout: 0.25s
+    type: STRICT_DNS
+    lb_policy: round_robin
+    hosts:
+    - socket_address:
+        address: host.docker.internal
+        port_value: 10003

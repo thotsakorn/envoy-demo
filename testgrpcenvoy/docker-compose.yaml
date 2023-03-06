@@ -1,0 +1,22 @@
+version: "3.7"
+services:
+      
+  envoy:
+    build:
+      context: .
+      dockerfile: Dockerfile.envoy
+    volumes:
+      - ./envoy.yaml:/etc/envoy.yaml
+    networks:
+      - envoymesh
+    expose:
+      - "9901"
+      - "8082"
+      - "8083"
+    ports:
+      - "9901:9901"
+      - "8082:8082"
+      - "8083:8083"
+
+networks:
+  envoymesh: {}

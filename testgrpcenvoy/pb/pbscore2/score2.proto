@@ -1,0 +1,22 @@
+syntax="proto3";
+
+package score2;
+
+option go_package = "./";
+
+service Score2Service {
+    rpc List2Matches(List2MatchesRequest) returns(List2MatchesResponse);
+}
+
+message List2MatchesRequest {
+    string country = 1;
+}
+
+message Match2ScoreResponse {
+    string score = 1;
+    bool live = 2;
+}
+
+message List2MatchesResponse {
+    repeated Match2ScoreResponse scores = 1;
+}
